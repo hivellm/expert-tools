@@ -1,0 +1,23 @@
+{
+  "test_cases": [
+    {
+      "name": "context7_search_plan",
+      "input": "Need up-to-date router documentation from HiveLLM.",
+      "expected_tool": "context7.search",
+      "description": "Should select Context7 MCP search when user requests documentation."
+    },
+    {
+      "name": "vectorizer_lookup_plan",
+      "input": "Find embedding guideline key 'embeddings usage guideline'.",
+      "expected_tool": "vectorizer.lookup",
+      "description": "Should route to vectorizer MCP when a known key is specified."
+    },
+    {
+      "name": "no_tool_fallback",
+      "input": "Explain how to configure an unsupported third-party tool.",
+      "expected_tool": null,
+      "description": "Should decline tool call and respond with natural language fallback."
+    }
+  ]
+}
+

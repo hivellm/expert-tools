@@ -1,0 +1,144 @@
+{
+  "name": "expert-tools",
+  "version": "0.1.0",
+  "schema_version": "2.0",
+  "description": "Tool orchestration expert designed to interpret tasks, select appropriate MCP/tool endpoints, and emit structured tool-call plans.",
+  "author": "hivellm",
+  "homepage": "https://github.com/hivellm/expert-tools",
+
+  "base_models": [
+    {
+      "name": "F:/Node/hivellm/expert/models/Qwen3-0.6B",
+      "sha256": "",
+      "quantization": "int4",
+      "rope_scaling": {
+        "type": "ntk-by-parts",
+        "factor": 8.0,
+        "max_position_embeddings": 32768,
+        "original_max_position_embeddings": 8192,
+        "fine_grained": true,
+        "_comment": "Same scaling used across Qwen3-based experts to maintain context length parity."
+      },
+      "prompt_template": "chatml",
+      "adapters": [
+        {
+          "type": "dora",
+          "target_modules": ["q_proj", "k_proj", "v_proj", "o_proj", "up_proj", "down_proj"],
+          "r": 16,
+          "alpha": 32,
+          "scaling": "dora",
+          "dropout": 0.1,
+          "path": "weights/qwen3-06b/checkpoint-TBD",
+          "size_bytes": 0,
+          "sha256": "",
+          "_comment": "Placeholder DoRA adapter configuration. Final checkpoint and hash will be populated after Qwen-Max hyperparameter sweep."
+        }
+      ]
+    }
+  ],
+
+  "soft_prompts": [],
+
+  "constraints": {
+    "max_chain": 6,
+    "load_order": 7,
+    "incompatible_with": [],
+    "requires": []
+  },
+
+  "capabilities": [
+    "task:tool_invocation",
+    "task:mcp_planning",
+    "task:tool_routing",
+    "feature:multi_step_planning",
+    "feature:error_recovery",
+    "feature:structured_output",
+    "feature:tool_argument_validation",
+    "feature:mcp_resource_selection",
+    "feature:api_schema_reasoning",
+    "format:json"
+  ],
+
+  "limitations": [
+    "limited_tool_catalog",
+    "no_direct_execution",
+    "requires_runtime_validation"
+  ],
+
+  "routing": {
+    "keywords": [
+      "tool",
+      "tools",
+      "mcp",
+      "plugin",
+      "call",
+      "invoke",
+      "planner",
+      "plan",
+      "api",
+      "action",
+      "run",
+      "query docs",
+      "context7",
+      "vectorizer",
+      "search tool",
+      "http request"
+    ],
+    "router_hint": "task=tool_invocation OR task=mcp_planning",
+    "priority": 0.8,
+    "_comment": "Priority slightly lower than specialized experts to allow domain experts to claim tasks first."
+  },
+
+  "perf": {
+    "latency_ms_overhead": 3.5,
+    "vram_mb_overhead": 22,
+    "supported_batch_sizes": [1, 2, 4],
+    "_comment": "Placeholder until benchmarked with finalized adapter."
+  },
+
+  "runtime": {
+    "candle_compatible": true,
+    "requires_kv_cache_persistence": true,
+    "attention_kernel": "flash-v2",
+    "_comment": "Matches Qwen3 runtime expectations. Ensure JSON validation middleware runs post-generation."
+  },
+
+  "training": {
+    "dataset": {
+      "path": "datasets/train.jsonl",
+      "format": "jsonl",
+      "streaming": false,
+      "_comment": "Curated tool/MCP dialogues with structured tool-call outputs. Add validation split when available."
+    },
+    "config": {
+      "method": "sft",
+      "adapter_type": "dora",
+      "use_unsloth": true,
+      "rank": 16,
+      "alpha": 32,
+      "learning_rate": 0.0002,
+      "warmup_steps": 50,
+      "num_epochs": 3,
+      "batch_size": 2,
+      "gradient_accumulation_steps": 4,
+      "max_steps": 0,
+      "logging_steps": 10,
+      "eval_steps": 100,
+      "save_steps": 100,
+      "_comment": "Initial hyperparameters mirroring reasoning-focused experts. Update after Qwen-Max sweep."
+    }
+  },
+
+  "evaluation": {
+    "suite": [
+      "tests/test_cases.json"
+    ],
+    "metrics": [
+      "tool_call_accuracy",
+      "schema_validity",
+      "fallback_quality"
+    ],
+    "_comment": "Evaluation harness will leverage expert-cli compare workflow once dataset/tests are populated."
+  }
+}
+

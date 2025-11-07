@@ -1,0 +1,40 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Weights and checkpoints
+weights/
+*.safetensors
+*.bin
+*.pt
+
+# Generated datasets or raw pulls
+datasets/raw/
+
+# Virtual environments
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log
+*.aux
+*.out
+
+# Coverage cache
+.pytest_cache/
+.coverage
+coverage/
+htmlcov/
+
+
