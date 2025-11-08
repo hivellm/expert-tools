@@ -124,14 +124,23 @@
       "rank": 16,
       "alpha": 32,
       "learning_rate": 0.00045,
+      "warmup_steps": 0,
       "warmup_ratio": 0.1,
       "lr_scheduler": "cosine_with_restarts",
       "lr_scheduler_kwargs": {
         "num_cycles": 3
       },
-      "num_epochs": 2.5,
+      "epochs": 2.5,
       "batch_size": 4,
       "gradient_accumulation_steps": 6,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj",
+        "up_proj",
+        "down_proj"
+      ],
       "max_steps": 0,
       "logging_steps": 10,
       "eval_steps": 100,
@@ -162,17 +171,20 @@
     }
   },
 
+  "license": "Apache-2.0",
+
   "evaluation": {
     "suite": [
       "tests/test_cases.json"
     ],
-    "metrics": [
-      "tool_selection_accuracy",
-      "argument_validity",
-      "fallback_effectiveness",
-      "schema_compliance",
-      "tool_call_success_rate"
-    ],
+    "test_set_size": 0,
+    "metrics": {
+      "tool_selection_accuracy": 0.0,
+      "argument_validity": 0.0,
+      "fallback_effectiveness": 0.0,
+      "schema_compliance": 0.0,
+      "tool_call_success_rate": 0.0
+    },
     "failure_modes": [
       "hallucinated_tools",
       "missing_required_args",

@@ -37,4 +37,5 @@ Thumbs.db
 coverage/
 htmlcov/
 
-
+# Unsloth
+unsloth_compiled_cache/
