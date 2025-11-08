@@ -1,0 +1,22 @@
+{
+  "count": 8500,
+  "min_length": 64,
+  "max_length": 8192,
+  "system_prompt_snippet": "Role: expert-tools planner\nCapabilities:\n- select appropriate MCP/tool endpoints (Context7, Vectorizer, HTTP, automation)\n- emit structured JSON control plans w",
+  "sources": {
+    "BitAgent/tool_calling": 3045,
+    "synthetic:error_timeout": 476,
+    "interstellarninja/tool-calls-multiturn": 481,
+    "synthetic:error_auth_error": 520,
+    "jvhoffbauer/gsm8k-toolcalls": 1861,
+    "tejeshbhalla/tool_calling": 110,
+    "llamafactory/glaive_toolcall": 216,
+    "roborovski/synthetic-tool-calls-v2-dpo-pairs": 612,
+    "synthetic:error_schema_mismatch": 476,
+    "synthetic:error_rate_limit": 481,
+    "interstellarninja/tool-calls-dpo": 75,
+    "roborovski/synthetic-tool-calls-v2": 147
+  },
+  "split": "train",
+  "validation_split": 0.15
+}

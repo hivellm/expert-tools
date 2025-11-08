@@ -43,7 +43,7 @@
     "max_chain": 6,
     "load_order": 7,
     "incompatible_with": [],
-    "requires": []
+    "requires": ["expert-json"]
   },
 
   "capabilities": [
@@ -100,7 +100,11 @@
     "candle_compatible": true,
     "requires_kv_cache_persistence": true,
     "attention_kernel": "flash-v2",
-    "_comment": "Matches Qwen3 runtime expectations. Ensure JSON validation middleware runs post-generation."
+    "tool_validation_middleware": true,
+    "max_tool_retries": 3,
+    "tool_timeout_ms": 5000,
+    "schema_validation": "strict",
+    "_comment": "Matches Qwen3 runtime expectations. JSON/tool validation middleware enforces schema compliance and retries."
   },
 
   "training": {
@@ -108,7 +112,10 @@
       "path": "datasets/train.jsonl",
       "format": "jsonl",
       "streaming": false,
-      "_comment": "Curated tool/MCP dialogues with structured tool-call outputs. Add validation split when available."
+      "validation_path": "datasets/validation.jsonl",
+      "validation_split": 0.15,
+      "error_injection_ratio": 0.3,
+      "_comment": "Curated tool/MCP dialogues (English-first). 15% reserved for validation; 30% of batches include synthetic failure cases."
     },
     "config": {
       "method": "sft",
@@ -116,16 +123,42 @@
       "use_unsloth": true,
       "rank": 16,
       "alpha": 32,
-      "learning_rate": 0.0002,
-      "warmup_steps": 50,
-      "num_epochs": 3,
-      "batch_size": 2,
-      "gradient_accumulation_steps": 4,
+      "learning_rate": 0.00045,
+      "warmup_ratio": 0.1,
+      "lr_scheduler": "cosine_with_restarts",
+      "lr_scheduler_kwargs": {
+        "num_cycles": 3
+      },
+      "num_epochs": 2.5,
+      "batch_size": 4,
+      "gradient_accumulation_steps": 6,
       "max_steps": 0,
       "logging_steps": 10,
       "eval_steps": 100,
       "save_steps": 100,
-      "_comment": "Initial hyperparameters mirroring reasoning-focused experts. Update after Qwen-Max sweep."
+      "gradient_checkpointing": "full",
+      "memory_clear_every": 50,
+      "bf16": true,
+      "use_tf32": true,
+      "use_sdpa": false,
+      "dataloader_num_workers": 2,
+      "dataloader_pin_memory": true,
+      "dataloader_persistent_workers": false,
+      "_comment": "Updated hyperparameters for tool-planning SFT (effective batch 24, cosine restarts, Windows-friendly dataloader/VRAM settings)."
+    },
+    "decoding": {
+      "temperature": 0.1,
+      "top_p": 0.9,
+      "top_k": 50,
+      "stop_sequences": [
+        "```",
+        "}",
+        "\n\n"
+      ],
+      "grammar_type": "tool-call",
+      "validation": "schema-strict",
+      "max_new_tokens": 512,
+      "_comment": "Deterministic decoding tuned for tool-call JSON generation."
     }
   },
 
@@ -134,11 +167,18 @@
       "tests/test_cases.json"
     ],
     "metrics": [
-      "tool_call_accuracy",
-      "schema_validity",
-      "fallback_quality"
+      "tool_selection_accuracy",
+      "argument_validity",
+      "fallback_effectiveness",
+      "schema_compliance",
+      "tool_call_success_rate"
     ],
-    "_comment": "Evaluation harness will leverage expert-cli compare workflow once dataset/tests are populated."
+    "failure_modes": [
+      "hallucinated_tools",
+      "missing_required_args",
+      "invalid_json_structure",
+      "infinite_tool_loops"
+    ],
+    "_comment": "Evaluation harness will leverage expert-cli compare workflow once dataset/tests are populated. Metrics aligned with production tool-calling KPIs."
   }
 }
-
