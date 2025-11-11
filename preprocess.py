@@ -130,12 +130,46 @@ def load_registry_from_file(path: Path) -> List[DatasetSpec]:
     return registry
 
 
-def build_chatml(system: str, user: str, assistant: str) -> str:
-    """Compose ChatML string."""
+def generate_brief_reasoning(user: str, assistant: str) -> str:
+    """Generate a brief reasoning statement for Qwen3 compatibility.
+    
+    Qwen3 uses hybrid reasoning, so we include concise reasoning that leads to the tool call plan.
+    This helps the model understand when to use reasoning vs direct output.
+    """
+    # Detect what the tool call plan is doing
+    if '"tool_calls"' in assistant and '"fallback"' in assistant:
+        if '"tool_calls": []' in assistant or '"tool_calls":[]' in assistant:
+            reasoning = f"I need to decline this request as no appropriate tool is available."
+        else:
+            reasoning = f"I need to select appropriate tools to fulfill this request."
+    elif '"tool_calls"' in assistant:
+        reasoning = f"I need to construct a tool call plan to answer the user's request."
+    else:
+        reasoning = f"I need to generate a structured tool call plan."
+    
+    return reasoning
+
+def build_chatml(system: str, user: str, assistant: str, include_reasoning: bool = False) -> str:
+    """Compose Qwen3 format string (<|im_start|>/<|im_end|>).
+    
+    Args:
+        include_reasoning: If True, wraps assistant content in <think> block for Qwen3 compatibility.
+                          Qwen3 uses hybrid reasoning, so some examples should include reasoning blocks.
+    """
+    # For Qwen3 compatibility: optionally wrap in reasoning block
+    # Qwen3 uses hybrid reasoning: 75% reasoning + 25% direct (as per Qwen3 training notebook)
+    if include_reasoning:
+        # Generate a brief reasoning that leads to the tool call plan
+        reasoning = generate_brief_reasoning(user, assistant)
+        assistant_content = f"<think>\n{reasoning}\n</think>\n{assistant.strip()}"
+    else:
+        assistant_content = assistant.strip()
+    
+    # Qwen3 format: <|im_start|>role\ncontent<|im_end|>
     return (
-        f"<|system|>\n{system.strip()}\n<|end|>\n"
-        f"<|user|>\n{user.strip()}\n<|end|>\n"
-        f"<|assistant|>\n{assistant.strip()}\n<|end|>"
+        f"<|im_start|>system\n{system.strip()}<|im_end|>\n"
+        f"<|im_start|>user\n{user.strip()}<|im_end|>\n"
+        f"<|im_start|>assistant\n{assistant_content}<|im_end|>\n"
     )
 
 
@@ -172,6 +206,11 @@ def normalize_tool_call(name: str, arguments: Any) -> Optional[Dict[str, Any]]:
     return {"name": name, "arguments": parsed}
 
 
+# Patterns for both Qwen3 and ChatML formats
+QWEN3_PATTERN = re.compile(
+    r"<\|im_start\|>system\n(.*?)<\|im_end\|>\s*\n<\|im_start\|>user\n(.*?)<\|im_end\|>\s*\n<\|im_start\|>assistant\n(.*?)<\|im_end\|>\s*$",
+    re.DOTALL,
+)
 CHATML_PATTERN = re.compile(
     r"<\|system\|>\s*\n(.*?)\n<\|end\|>\s*\n<\|user\|>\s*\n(.*?)\n<\|end\|>\s*\n<\|assistant\|>\s*\n(.*?)\n<\|end\|>\s*$",
     re.DOTALL,
@@ -179,11 +218,18 @@ CHATML_PATTERN = re.compile(
 
 
 def parse_chatml_sections(text: str) -> Optional[Tuple[str, str, str]]:
-    """Extract system, user, assistant sections from ChatML."""
+    """Extract system, user, assistant sections from Qwen3 or ChatML format."""
+    # Try Qwen3 format first
+    match = QWEN3_PATTERN.match(text.strip())
+    if match:
+        return match.group(1), match.group(2), match.group(3)
+    
+    # Fallback to ChatML format
     match = CHATML_PATTERN.match(text.strip())
-    if not match:
-        return None
-    return match.group(1), match.group(2), match.group(3)
+    if match:
+        return match.group(1), match.group(2), match.group(3)
+    
+    return None
 
 
 def _sanitize(obj: Any) -> Any:
@@ -283,7 +329,8 @@ def inject_error_examples(
             next_step=f"Escalate or retry after resolving {human_readable}.",
             fallback=f"Tool execution aborted due to {human_readable}.",
         )
-        text = build_chatml(system, user, assistant_json)
+        # Error examples don't need reasoning (they're already fallback scenarios)
+        text = build_chatml(system, user, assistant_json, include_reasoning=False)
         meta = {
             "dataset": "synthetic_error",
             "error_type": error_type,
@@ -737,6 +784,7 @@ def preprocess(
 ) -> Tuple[List[NormalizedExample], Dict[str, Any]]:
     collected: List[NormalizedExample] = []
     stats: Dict[str, Any] = {"per_dataset": defaultdict(int), "attempted": defaultdict(int)}
+    reasoning_counter = 0  # Counter for reasoning distribution (75% reasoning + 25% direct)
 
     for spec in registry:
         print(f"\n=== Loading {spec.dataset_id} [{spec.split}] ===")
@@ -758,6 +806,20 @@ def preprocess(
             example = spec.converter(raw)
             if not example:
                 continue
+            
+            # Apply reasoning distribution (75% reasoning + 25% direct)
+            # Qwen3 uses hybrid reasoning: 75% reasoning + 25% direct (as per Qwen3 training notebook)
+            include_reasoning = (reasoning_counter % 4 != 0)  # 75% with reasoning (3 out of 4)
+            reasoning_counter += 1
+            
+            # Rebuild ChatML with reasoning if needed
+            if include_reasoning:
+                parsed = parse_chatml_sections(example.text)
+                if parsed:
+                    system, user, assistant = parsed
+                    text_with_reasoning = build_chatml(system, user, assistant, include_reasoning=include_reasoning)
+                    example = NormalizedExample(text=text_with_reasoning, source=example.source, meta=example.meta)
+            
             if validate_example(example):
                 collected.append(example)
                 stats["per_dataset"][spec.dataset_id] += 1

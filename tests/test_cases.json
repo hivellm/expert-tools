@@ -1,22 +1,181 @@
 {
   "test_cases": [
     {
-      "name": "context7_search_plan",
-      "input": "Need up-to-date router documentation from HiveLLM.",
-      "expected_tool": "context7.search",
-      "description": "Should select Context7 MCP search when user requests documentation."
+      "name": "context7_get_docs",
+      "system": "You are a powerful agentic AI coding assistant operating inside Cursor. Follow tool schemas exactly and only use tools that are available.",
+      "user": "Need the most recent HiveLLM router manual. Use Context7 to pull the docs that shipped yesterday before I start editing.",
+      "tool_catalog": [
+        {
+          "mcp": "context7",
+          "tools": [
+            {
+              "name": "resolve-library-id",
+              "description": "Resolve a package or library name to a Context7-compatible ID.",
+              "arguments": {
+                "libraryName": {"type": "str", "required": true, "description": "Human-readable library name."}
+              }
+            },
+            {
+              "name": "get-library-docs",
+              "description": "Fetch documentation for a resolved Context7 library, optionally filtered by topic.",
+              "arguments": {
+                "context7CompatibleLibraryID": {"type": "str", "required": true, "description": "Library ID such as /org/project."},
+                "topic": {"type": "str", "required": false, "description": "Optional topic filter."},
+                "tokens": {"type": "int", "required": false, "description": "Token budget for the response."}
+              }
+            }
+          ]
+        },
+        {
+          "mcp": "vectorizer",
+          "tools": [
+            {
+              "name": "list_collections",
+              "description": "List vector collections and metadata.",
+              "arguments": {}
+            },
+            {
+              "name": "search",
+              "description": "Run a similarity search within a collection.",
+              "arguments": {
+                "collection": {"type": "str", "required": true, "description": "Collection to search."},
+                "query": {"type": "str", "required": true, "description": "Natural language query."},
+                "limit": {"type": "int", "required": false, "description": "Maximum results."},
+                "similarity_threshold": {"type": "float", "required": false, "description": "Minimum similarity."}
+              }
+            },
+            {
+              "name": "get_file_content",
+              "description": "Retrieve stored file content from a vector collection entry.",
+              "arguments": {
+                "collection": {"type": "str", "required": true},
+                "file_path": {"type": "str", "required": true},
+                "max_size_kb": {"type": "int", "required": false}
+              }
+            }
+          ]
+        }
+      ],
+      "expected_tool": "get-library-docs",
+      "description": "Should fetch documentation through Context7 using get-library-docs."
     },
     {
-      "name": "vectorizer_lookup_plan",
-      "input": "Find embedding guideline key 'embeddings usage guideline'.",
-      "expected_tool": "vectorizer.lookup",
-      "description": "Should route to vectorizer MCP when a known key is specified."
+      "name": "vectorizer_search",
+      "system": "You are assisting inside Cursor. Respect tool schemas and use the Vectorizer MCP to ground embeddings.",
+      "user": "Before drafting the recap, search Vectorizer for the canonical key \"embeddings usage guideline\" so we reuse the existing notes.",
+      "tool_catalog": [
+        {
+          "mcp": "context7",
+          "tools": [
+            {
+              "name": "resolve-library-id",
+              "description": "Resolve a package or library name to a Context7-compatible ID.",
+              "arguments": {
+                "libraryName": {"type": "str", "required": true, "description": "Human-readable library name."}
+              }
+            },
+            {
+              "name": "get-library-docs",
+              "description": "Fetch documentation for a resolved Context7 library, optionally filtered by topic.",
+              "arguments": {
+                "context7CompatibleLibraryID": {"type": "str", "required": true},
+                "topic": {"type": "str", "required": false},
+                "tokens": {"type": "int", "required": false}
+              }
+            }
+          ]
+        },
+        {
+          "mcp": "vectorizer",
+          "tools": [
+            {
+              "name": "list_collections",
+              "description": "List vector collections and metadata.",
+              "arguments": {}
+            },
+            {
+              "name": "search",
+              "description": "Run a similarity search within a collection.",
+              "arguments": {
+                "collection": {"type": "str", "required": true},
+                "query": {"type": "str", "required": true},
+                "limit": {"type": "int", "required": false},
+                "similarity_threshold": {"type": "float", "required": false}
+              }
+            },
+            {
+              "name": "get_file_content",
+              "description": "Retrieve stored file content from a vector collection entry.",
+              "arguments": {
+                "collection": {"type": "str", "required": true},
+                "file_path": {"type": "str", "required": true},
+                "max_size_kb": {"type": "int", "required": false}
+              }
+            }
+          ]
+        }
+      ],
+      "expected_tool": "search",
+      "description": "Should search Vectorizer for the requested embedding guidance."
     },
     {
       "name": "no_tool_fallback",
-      "input": "Explain how to configure an unsupported third-party tool.",
+      "system": "You are the coding copilot. Only call tools when strictly necessary.",
+      "user": "Cursor says there is no automation endpoint for this vendor. Just tell me how to configure their CLI manually.",
+      "tool_catalog": [
+        {
+          "mcp": "context7",
+          "tools": [
+            {
+              "name": "resolve-library-id",
+              "description": "Resolve a package or library name to a Context7-compatible ID.",
+              "arguments": {
+                "libraryName": {"type": "str", "required": true}
+              }
+            },
+            {
+              "name": "get-library-docs",
+              "description": "Fetch documentation for a resolved Context7 library, optionally filtered by topic.",
+              "arguments": {
+                "context7CompatibleLibraryID": {"type": "str", "required": true},
+                "topic": {"type": "str", "required": false},
+                "tokens": {"type": "int", "required": false}
+              }
+            }
+          ]
+        },
+        {
+          "mcp": "vectorizer",
+          "tools": [
+            {
+              "name": "list_collections",
+              "description": "List vector collections and metadata.",
+              "arguments": {}
+            },
+            {
+              "name": "search",
+              "description": "Run a similarity search within a collection.",
+              "arguments": {
+                "collection": {"type": "str", "required": true},
+                "query": {"type": "str", "required": true},
+                "limit": {"type": "int", "required": false},
+                "similarity_threshold": {"type": "float", "required": false}
+              }
+            },
+            {
+              "name": "get_file_content",
+              "description": "Retrieve stored file content from a vector collection entry.",
+              "arguments": {
+                "collection": {"type": "str", "required": true},
+                "file_path": {"type": "str", "required": true},
+                "max_size_kb": {"type": "int", "required": false}
+              }
+            }
+          ]
+        }
+      ],
       "expected_tool": null,
-      "description": "Should decline tool call and respond with natural language fallback."
+      "description": "Should decline tool call and respond with natural language fallback when no supported tool applies."
     }
   ]
 }

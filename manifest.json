@@ -28,7 +28,6 @@
           "alpha": 32,
           "scaling": "dora",
           "dropout": 0.1,
-          "path": "weights/qwen3-06b/checkpoint-TBD",
           "size_bytes": 0,
           "sha256": "",
           "_comment": "Placeholder DoRA adapter configuration. Final checkpoint and hash will be populated after Qwen-Max hyperparameter sweep."
@@ -60,11 +59,38 @@
   ],
 
   "limitations": [
-    "limited_tool_catalog",
-    "no_direct_execution",
-    "requires_runtime_validation"
+    {
+      "pattern": "limited_tool_catalog",
+      "description": "Tool catalog is limited to available MCP tools; cannot fabricate tool names",
+      "example": "Requesting a tool that doesn't exist in the provided catalog",
+      "workaround": "Ensure all required tools are available in the tool catalog or provide fallback reasoning"
+    },
+    {
+      "pattern": "no_direct_execution",
+      "description": "Expert only generates tool-call plans; does not execute tools directly",
+      "example": "Expert outputs JSON plan but requires runtime to execute actual tool calls",
+      "workaround": "Use runtime middleware to execute tool calls based on generated plans"
+    },
+    {
+      "pattern": "requires_runtime_validation",
+      "description": "Tool call plans require runtime validation for argument correctness and tool availability",
+      "example": "Generated tool calls may have invalid arguments or reference unavailable tools",
+      "workaround": "Implement validation middleware to check tool availability and argument schemas before execution"
+    }
   ],
-
+  
+  "quality_metrics": {
+    "benchmark_score": 0.0,
+    "base_model_score": 0.0,
+    "improvement_percent": 0.0,
+    "win_rate_vs_base": 0.0,
+    "test_queries": 0,
+    "checkpoint": "checkpoint-TBD",
+    "training_steps": 0,
+    "test_date": "2025-11-08",
+    "_comment": "Quality metrics pending - expert not yet fully trained or evaluated. Dataset: 8,501 examples. Training configuration: DoRA r=16, 2.5 epochs, effective batch 24."
+  },
+  
   "routing": {
     "keywords": [
       "tool",
