@@ -1,5 +1,14 @@
 # Expert Tools
 
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/hivellm/expert-tools/releases/tag/v0.1.0)
+[![License](https://img.shields.io/badge/license-CC--BY--4.0-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-experimental-orange.svg)](README.md#quick-start)
+
+[![Base Model](https://img.shields.io/badge/base%20model-Qwen3--0.6B-orange.svg)](README.md#features)
+[![Adapter](https://img.shields.io/badge/adapter-DoRA%20r%3D16-blue.svg)](README.md#training--configuration)
+[![Dataset](https://img.shields.io/badge/dataset-10k%20examples-brightgreen.svg)](README.md#dataset)
+[![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20CUDA-0078d4.svg)](README.md#features)
+
 Tool orchestration expert that plans MCP/tool invocations and emits structured JSON control plans (`{"tool_call": {"name": ..., "arguments": ...}}`). Optimized for triaging Context7, Vectorizer, HTTP, and internal automation endpoints with explicit fallback reasoning.
 
 **Version:** 0.1.0 (scaffold) | **Checkpoint:** TBD | **Dataset:** 8,500 train + 1,499 validation (English-only, 30 % synthetic failures)
